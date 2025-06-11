@@ -110,9 +110,10 @@
                     updateUI(data);
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    breachResult.textContent = 'Evaluation failed. Please try again.';
-                });
+                 console.error('Error:', error);
+                 breachResult.textContent = `Evaluation failed: ${error.message || error}`;
+                 });
+
             }
 
             function updateUI(data) {
