@@ -17,19 +17,24 @@ def check_hibp(password):
     prefix, suffix = sha1_hash[:5], sha1_hash[5:]
 
     try:
-        response = requests.get(f'https://api.pwnedpasswords.com/range/{prefix}', timeout=2)
+        response = requests.get(
+            f'https://api.pwnedpasswords.com/range/{prefix}',
+            headers={'User-Agent': 'PasswordChecker/1.0'},
+            timeout=5
+        )
         response.raise_for_status()
 
         for line in response.text.splitlines():
             if line.split(':')[0] == suffix:
                 return int(line.split(':')[1])
         return 0
-    except:
+    except Exception as e:
+        print(f"[ERROR] HIBP API call failed: {e}")
         return -1  # API error
 
 
 def detect_contextual_weaknesses(password):
-    """Detect contextual weaknesses using NLP techniques"""
+    """Detect contextual weaknesses using simple pattern checks"""
     weaknesses = []
     password_lower = password.lower()
 
@@ -39,18 +44,18 @@ def detect_contextual_weaknesses(password):
             weaknesses.append(f"Contains common name: '{name}'")
             break
 
-    # Check for date patterns (YYYY, YY, DD/MM, MM/DD)
+    # Check for date patterns
     date_patterns = [
-        r'\b(19|20)\d{2}\b',  # Years 1900-2099
-        r'\b\d{1,2}[/-]\d{1,2}\b',  # DD/MM or MM/DD
-        r'\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b'  # YYYY-MM-DD
+        r'\b(19|20)\d{2}\b',               # Year (1900–2099)
+        r'\b\d{1,2}[/-]\d{1,2}\b',         # DD/MM or MM/DD
+        r'\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b' # YYYY-MM-DD
     ]
     for pattern in date_patterns:
         if re.search(pattern, password):
             weaknesses.append("Contains date pattern")
             break
 
-    # Check keyboard patterns
+    # Common keyboard patterns
     keyboard_patterns = [
         'qwerty', 'asdfgh', 'zxcvbn', '123456',
         'password', 'letmein', 'welcome', 'admin'
@@ -72,38 +77,37 @@ def index():
 def check_password():
     password = request.form.get('password', '')
 
-    # Security: Don't process empty passwords
     if not password:
         return jsonify({'error': 'No password provided'})
 
     # Step 1: Check breach database
     breach_count = check_hibp(password)
 
-    # Step 2: Get Zxcvbn analysis
+    # Step 2: Zxcvbn analysis
     zxcvbn_result = zxcvbn(password)
 
     # Step 3: Contextual analysis
     contextual_issues = detect_contextual_weaknesses(password)
 
-    # Step 4: Calculate combined score
+    # Step 4: Final scoring
     base_score = zxcvbn_result['score']
 
-    # Penalize breached passwords
     if breach_count > 0:
         final_score = 0
     elif breach_count == -1:
-        final_score = min(base_score, 3)  # Downgrade if API error
+        final_score = min(base_score, 3)
     else:
-        # Penalize for contextual weaknesses
         penalty = min(len(contextual_issues), 2)
         final_score = max(0, base_score - penalty)
 
-    # Prepare recommendations
+    # Recommendations
     recommendations = []
     if final_score < 2:
-        recommendations.append("Your password is weak. Consider using a passphrase")
+        recommendations.append("Your password is weak. Consider using a long passphrase.")
     if breach_count > 0:
         recommendations.append(f"This password appeared in {breach_count} breaches. NEVER use it!")
+    if breach_count == -1:
+        recommendations.append("Breach analysis failed. Please check your internet connection or try again later.")
     if not recommendations:
         recommendations = zxcvbn_result['feedback']['suggestions']
 
