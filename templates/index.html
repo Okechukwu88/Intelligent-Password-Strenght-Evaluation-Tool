@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Context-Aware Password Strength Tool</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Intelligent Password Strength Evaluation</h1>
+        <div class="password-box">
+            <input type="password" id="passwordInput" placeholder="Enter password to evaluate...">
+            <button id="toggleVisibility">👁️</button>
+            <button id="evaluateBtn">Evaluate</button>
+        </div>
+
+        <div class="results">
+            <div class="score-display">
+                <div class="score-header">
+                    <h2>Security Assessment</h2>
+                    <div class="score-meter">
+                        <div class="score-bar" id="scoreBar"></div>
+                    </div>
+                    <div class="score-value" id="scoreValue">-</div>
+                </div>
+
+                <div class="score-details">
+                    <div class="detail-card">
+                        <h3>Breach Analysis</h3>
+                        <p id="breachResult">Checking...</p>
+                    </div>
+                    <div class="detail-card">
+                        <h3>Context Analysis</h3>
+                        <ul id="contextualIssues"></ul>
+                    </div>
+                    <div class="detail-card">
+                        <h3>Time to Crack</h3>
+                        <p id="crackTime">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="recommendations">
+                <h2>Security Recommendations</h2>
+                <ul id="recommendationsList"></ul>
+            </div>
+
+            <div class="comparison">
+                <h2>Comparison with Standard Checkers</h2>
+                <canvas id="comparisonChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>MSc Project by Fatade Saheed Ajibola (ID: 24055679) | Ethical Note: No passwords are stored or transmitted</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const passwordInput = document.getElementById('passwordInput');
+            const evaluateBtn = document.getElementById('evaluateBtn');
+            const toggleBtn = document.getElementById('toggleVisibility');
+            const scoreBar = document.getElementById('scoreBar');
+            const scoreValue = document.getElementById('scoreValue');
+            const breachResult = document.getElementById('breachResult');
+            const contextualIssues = document.getElementById('contextualIssues');
+            const crackTime = document.getElementById('crackTime');
+            const recommendationsList = document.getElementById('recommendationsList');
+
+            let isVisible = false;
+
+            // Toggle password visibility
+            toggleBtn.addEventListener('click', () => {
+                isVisible = !isVisible;
+                passwordInput.type = isVisible ? 'text' : 'password';
+                toggleBtn.textContent = isVisible ? '👁️‍🗨️' : '👁️';
+            });
+
+            // Evaluate password
+            evaluateBtn.addEventListener('click', evaluatePassword);
+            passwordInput.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') evaluatePassword();
+            });
+
+            function evaluatePassword() {
+                const password = passwordInput.value;
+                if (!password) return;
+
+                // Reset UI
+                scoreBar.style.width = '0%';
+                scoreValue.textContent = '-';
+                breachResult.textContent = 'Analyzing...';
+                contextualIssues.innerHTML = '';
+                crackTime.textContent = '-';
+                recommendationsList.innerHTML = '<li>Analyzing password...</li>';
+
+                // Send request to backend
+                fetch('/check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `password=${encodeURIComponent(password)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    updateUI(data);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    breachResult.textContent = 'Evaluation failed. Please try again.';
+                });
+            }
+
+            function updateUI(data) {
+                // Update score
+                const score = data.final_score;
+                const width = score * 25; // 0-4 scale to percentage
+                scoreBar.style.width = `${width}%`;
+                scoreBar.className = `score-bar score-${score}`;
+                scoreValue.textContent = `${score}/4`;
+
+                // Update breach info
+                if (data.breach_count > 0) {
+                    breachResult.innerHTML = `<span class="warning">⚠️ BREACHED!</span> Found in ${data.breach_count} data breaches`;
+                } else if (data.breach_count === -1) {
+                    breachResult.textContent = "Breach check unavailable (API error)";
+                } else {
+                    breachResult.innerHTML = '<span class="safe">✓ No breaches found</span>';
+                }
+
+                // Update contextual issues
+                if (data.contextual_issues.length > 0) {
+                    data.contextual_issues.forEach(issue => {
+                        const li = document.createElement('li');
+                        li.textContent = issue;
+                        li.className = 'warning-item';
+                        contextualIssues.appendChild(li);
+                    });
+                } else {
+                    contextualIssues.innerHTML = '<li class="safe-item">No contextual weaknesses detected</li>';
+                }
+
+                // Update recommendations
+                recommendationsList.innerHTML = '';
+                if (data.recommendations.length > 0) {
+                    data.recommendations.forEach(rec => {
+                        const li = document.createElement('li');
+                        li.textContent = rec;
+                        recommendationsList.appendChild(li);
+                    });
+                }
+
+                // Update crack time
+                crackTime.textContent = data.crack_time || 'Unknown';
+
+                // Update comparison chart
+                updateComparisonChart(data.zxcvbn_score, score);
+            }
+
+            function updateComparisonChart(zxcvbnScore, ourScore) {
+                const ctx = document.getElementById('comparisonChart').getContext('2d');
+
+                if (window.comparisonChart) {
+                    window.comparisonChart.destroy();
+                }
+
+                window.comparisonChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Standard Checker', 'Our Context-Aware Tool'],
+                        datasets: [{
+                            label: 'Password Score (0-4)',
+                            data: [zxcvbnScore, ourScore],
+                            backgroundColor: [
+                                'rgba(54, 162, 235, 0.7)',
+                                'rgba(75, 192, 192, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(75, 192, 192, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 4,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
