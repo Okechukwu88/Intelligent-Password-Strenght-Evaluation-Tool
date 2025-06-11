@@ -55,50 +55,10 @@
                 <ul id="recommendationsList" aria-live="polite"></ul>
             </article>
 
-            <article class="comparison" role="region" aria-labelledby="comparisonTitle">
-    <h2 id="comparisonTitle">Password Strength Comparison</h2>
-    <p class="chart-description">
-        This chart compares your password strength score with standard scoring mechanisms like zxcvbn and contextual AI analysis.
-    </p>
-    <div class="chart-wrapper">
-        <canvas id="comparisonChart" aria-label="Password strength comparison chart" role="img"></canvas>
-        <noscript>
-            <p>Your browser does not support JavaScript. The comparison chart is unavailable.</p>
-        </noscript>
-    </div>
-</article>
-
-<script type="text/javascript">
-    
-    const ctx = document.getElementById('comparisonChart').getContext('2d');
-new Chart(ctx, {
-    type: 'bar',
-    data: {
-        labels: ['Zxcvbn Score', 'Contextual Analysis Score', 'Final Score'],
-        datasets: [{
-            label: 'Password Score (0-4)',
-            data: [3, 2, 2], // example data
-            backgroundColor: ['#4caf50', '#ff9800', '#2196f3']
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: { display: false },
-            tooltip: { enabled: true }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                max: 4
-            }
-        }
-    }
-});
-
-</script>
-
-
+            <article class="comparison">
+                <h2>Comparison with Standard Checkers</h2>
+                <canvas id="comparisonChart" aria-label="Password score comparison chart"></canvas>
+            </article>
         </section>
     </main>
 
