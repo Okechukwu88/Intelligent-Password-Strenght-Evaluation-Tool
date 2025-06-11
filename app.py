@@ -12,16 +12,20 @@ with open('common_names.txt') as f:
 
 
 def check_hibp(password):
-    """Check password against HaveIBeenPwned API using k-anonymity"""
+    """
+    Check if password has been exposed in a data breach using HIBP k-Anonymity API.
+    Returns:
+        - int: number of times the password was found in breaches
+        - -1: if API fails
+    """
     sha1_hash = hashlib.sha1(password.encode('utf-8')).hexdigest().upper()
     prefix, suffix = sha1_hash[:5], sha1_hash[5:]
 
     try:
-        response = requests.get(
-            f'https://api.pwnedpasswords.com/range/{prefix}',
-            headers={'User-Agent': 'PasswordCheckerApp/1.0'},
-            timeout=5
-        )
+        headers = {
+            'User-Agent': 'PasswordSecurityChecker/1.0 (nichokechukwu@gmail.com)'
+        }
+        response = requests.get(f'https://api.pwnedpasswords.com/range/{prefix}', headers=headers, timeout=2)
         response.raise_for_status()
 
         for line in response.text.splitlines():
@@ -29,34 +33,34 @@ def check_hibp(password):
             if hash_suffix == suffix:
                 return int(count)
         return 0
-    except Exception as e:
-        print(f"[HIBP Error] {e}")
-        return -1  # API/network error
+    except requests.RequestException as e:
+        print(f"[HIBP API Error] {e}")
+        return -1
 
 
 def detect_contextual_weaknesses(password):
-    """Detect contextual weaknesses using basic pattern matching"""
+    """Detect contextual weaknesses using NLP techniques"""
     weaknesses = []
     password_lower = password.lower()
 
-    # Common names check
+    # Check for common names
     for name in COMMON_NAMES:
         if len(name) > 2 and name in password_lower:
             weaknesses.append(f"Contains common name: '{name}'")
             break
 
-    # Date patterns
+    # Check for date patterns (YYYY, YY, DD/MM, MM/DD)
     date_patterns = [
-        r'\b(19|20)\d{2}\b',                 # Years
-        r'\b\d{1,2}[/-]\d{1,2}\b',           # DD/MM or MM/DD
-        r'\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b'   # YYYY-MM-DD
+        r'\b(19|20)\d{2}\b',  # Years 1900-2099
+        r'\b\d{1,2}[/-]\d{1,2}\b',  # DD/MM or MM/DD
+        r'\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b'  # YYYY-MM-DD
     ]
     for pattern in date_patterns:
         if re.search(pattern, password):
             weaknesses.append("Contains date pattern")
             break
 
-    # Common keyboard/password patterns
+    # Check keyboard patterns
     keyboard_patterns = [
         'qwerty', 'asdfgh', 'zxcvbn', '123456',
         'password', 'letmein', 'welcome', 'admin'
@@ -81,33 +85,32 @@ def check_password():
     if not password:
         return jsonify({'error': 'No password provided'})
 
-    # Step 1: HIBP check
+    # Step 1: Breach check
     breach_count = check_hibp(password)
 
-    # Step 2: Zxcvbn strength analysis
+    # Step 2: Zxcvbn score
     zxcvbn_result = zxcvbn(password)
 
     # Step 3: Contextual weaknesses
     contextual_issues = detect_contextual_weaknesses(password)
 
-    # Step 4: Final score calculation
+    # Step 4: Score logic
     base_score = zxcvbn_result['score']
+
     if breach_count > 0:
         final_score = 0
     elif breach_count == -1:
-        final_score = max(0, base_score - 1)
+        final_score = min(base_score, 3)
     else:
         penalty = min(len(contextual_issues), 2)
         final_score = max(0, base_score - penalty)
 
-    # Step 5: Recommendations
+    # Recommendations
     recommendations = []
     if final_score < 2:
         recommendations.append("Your password is weak. Consider using a passphrase.")
     if breach_count > 0:
         recommendations.append(f"This password appeared in {breach_count} breaches. NEVER use it!")
-    if breach_count == -1:
-        recommendations.append("Breach check unavailable. Verify password safety manually.")
     if not recommendations:
         recommendations = zxcvbn_result['feedback']['suggestions']
 
@@ -122,4 +125,4 @@ def check_password():
 
 
 if __name__ == '__main__':
-    app.run(ssl_context='adhoc')
+    app.run(ssl_context='adhoc')  # HTTPS is required for password security
