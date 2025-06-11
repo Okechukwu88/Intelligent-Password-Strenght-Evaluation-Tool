@@ -5,30 +5,33 @@
     --neutral: #2196F3;
     --highlight: #3498db;
     --highlight-dark: #2980b9;
-    --light-bg: #f5f5f5;
+    --light-bg: #f0f2f5;
     --card-bg: #ffffff;
-    --text-color: #333;
-    --heading-color: #2c3e50;
-    --box-shadow-light: 0 2px 5px rgba(0, 0, 0, 0.05);
-    --box-shadow-heavy: 0 0 20px rgba(0, 0, 0, 0.1);
+    --text-color: #2f3542;
+    --heading-color: #1e272e;
+    --box-shadow-light: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --box-shadow-heavy: 0 10px 25px rgba(0, 0, 0, 0.1);
     --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --transition: all 0.3s ease-in-out;
 }
 
 body {
     font-family: var(--font-main);
     line-height: 1.6;
     color: var(--text-color);
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
     background-color: var(--light-bg);
+    margin: 0;
+    padding: 20px;
+    max-width: 1200px;
+    margin-inline: auto;
 }
 
 .container {
     background: var(--card-bg);
-    padding: 30px;
-    border-radius: 10px;
+    padding: 40px 30px;
+    border-radius: 12px;
     box-shadow: var(--box-shadow-heavy);
+    transition: var(--transition);
 }
 
 h1, h2, h3 {
@@ -39,55 +42,66 @@ h1, h2, h3 {
 .password-box {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    margin: 20px 0;
+    gap: 12px;
+    margin: 25px 0;
 }
 
 #passwordInput {
     flex: 1;
-    padding: 12px 15px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 14px 16px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
     font-size: 16px;
+    transition: border-color 0.2s;
+}
+
+#passwordInput:focus {
+    outline: none;
+    border-color: var(--highlight);
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
 }
 
 button {
-    padding: 12px 20px;
+    padding: 14px 24px;
     background: var(--highlight);
     color: #fff;
     border: none;
-    border-radius: 4px;
-    cursor: pointer;
+    border-radius: 6px;
     font-size: 16px;
-    transition: background 0.3s ease;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 button:hover,
 button:focus {
     background: var(--highlight-dark);
     outline: none;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
 }
 
 #toggleVisibility {
-    width: 60px;
+    width: 70px;
+    padding: 0 10px;
 }
 
 .results {
-    margin-top: 30px;
+    margin-top: 40px;
 }
 
 .score-display {
     background: #f8f9fa;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
+    border-radius: 10px;
+    padding: 25px;
+    margin-bottom: 30px;
 }
 
 .score-header {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 25px;
     margin-bottom: 20px;
 }
 
@@ -102,7 +116,8 @@ button:focus {
 .score-bar {
     height: 100%;
     width: 0%;
-    transition: width 0.5s ease-in-out;
+    transition: width 0.6s ease-in-out;
+    border-radius: 10px;
 }
 
 .score-0 { background: var(--danger); }
@@ -112,31 +127,39 @@ button:focus {
 .score-4 { background: var(--safe); }
 
 .score-value {
-    font-size: 24px;
-    font-weight: bold;
-    min-width: 60px;
+    font-size: 26px;
+    font-weight: 700;
+    min-width: 70px;
     text-align: center;
 }
 
 .score-details {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
+    gap: 24px;
 }
 
 .detail-card,
 .comparison {
     background: var(--card-bg);
-    border-radius: 8px;
-    padding: 15px 20px;
+    border-radius: 10px;
+    padding: 18px 22px;
     box-shadow: var(--box-shadow-light);
+    transition: var(--transition);
+}
+
+.detail-card:hover,
+.comparison:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--box-shadow-heavy);
 }
 
 .recommendations {
     background: #e8f4fc;
-    border-radius: 8px;
-    padding: 20px;
-    margin: 20px 0;
+    border-radius: 10px;
+    padding: 24px;
+    margin: 25px 0;
+    border-left: 5px solid var(--highlight);
 }
 
 .warning,
@@ -153,20 +176,22 @@ button:focus {
 
 .warning-item {
     list-style-type: '⚠️ ';
+    margin-left: 20px;
 }
 
 .safe-item {
     list-style-type: '✓ ';
+    margin-left: 20px;
 }
 
 footer {
     text-align: center;
-    margin-top: 40px;
+    margin-top: 50px;
     color: #7f8c8d;
     font-size: 0.9em;
 }
 
-/* Responsive improvements */
+/* Responsive Enhancements */
 @media (max-width: 768px) {
     .password-box {
         flex-direction: column;
