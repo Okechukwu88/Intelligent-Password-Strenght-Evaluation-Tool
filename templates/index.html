@@ -110,10 +110,9 @@
                     updateUI(data);
                 })
                 .catch(error => {
-                 console.error('Error:', error);
-                 breachResult.textContent = `Evaluation failed: ${error.message || error}`;
-                 });
-
+                    console.error('Error:', error);
+                    breachResult.textContent = `Evaluation failed: ${error.message || error}`;
+                });
             }
 
             function updateUI(data) {
@@ -165,7 +164,8 @@
             function updateComparisonChart(zxcvbnScore, ourScore) {
                 const ctx = document.getElementById('comparisonChart').getContext('2d');
 
-                if (window.comparisonChart) {
+                // ✅ Safely destroy old chart instance
+                if (window.comparisonChart instanceof Chart) {
                     window.comparisonChart.destroy();
                 }
 
