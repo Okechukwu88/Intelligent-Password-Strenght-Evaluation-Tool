@@ -411,9 +411,146 @@
         .score-2 { width: 50% !important; }
         .score-3 { width: 75% !important; }
         .score-4 { width: 100% !important; }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loading-content {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--primary);
+            transform: translateY(20px);
+            transition: transform 0.4s ease;
+        }
+
+        .loading-overlay.active .loading-content {
+            transform: translateY(0);
+        }
+
+        .loading-spinner {
+            width: 70px;
+            height: 70px;
+            border: 5px solid rgba(67, 97, 238, 0.2);
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            margin: 0 auto 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--light);
+            font-weight: 600;
+        }
+
+        .loading-subtext {
+            font-size: 1.1rem;
+            color: var(--gray);
+            max-width: 400px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .loading-steps {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+        }
+
+        .loading-step {
+            text-align: center;
+            opacity: 0.6;
+        }
+
+        .loading-step.active {
+            opacity: 1;
+        }
+
+        .loading-step-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+        }
+
+        .loading-step-text {
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Evaluating Password Security</div>
+            <div class="loading-subtext">Analyzing your password against breach databases and security patterns</div>
+
+            <div class="loading-steps">
+                <div class="loading-step active" id="step1">
+                    <div class="loading-step-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="loading-step-text">Basic Check</div>
+                </div>
+                <div class="loading-step" id="step2">
+                    <div class="loading-step-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <div class="loading-step-text">Breach Analysis</div>
+                </div>
+                <div class="loading-step" id="step3">
+                    <div class="loading-step-icon">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <div class="loading-step-text">Context Check</div>
+                </div>
+                <div class="loading-step" id="step4">
+                    <div class="loading-step-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="loading-step-text">Finalizing</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <main class="container">
         <header>
             <h1><i class="fas fa-shield-alt"></i> Intelligent Password Strength Evaluation</h1>
@@ -448,7 +585,7 @@
                 <div class="score-details">
                     <div class="detail-card">
                         <h3><i class="fas fa-database"></i> Breach Analysis</h3>
-                        <p id="breachResult"><i class="fas fa-spinner fa-spin"></i> Checking database breaches...</p>
+                        <p id="breachResult">Enter a password to check breach status</p>
                     </div>
                     <div class="detail-card">
                         <h3><i class="fas fa-globe"></i> Context Analysis</h3>
@@ -482,139 +619,209 @@
     </footer>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const passwordInput = document.getElementById('passwordInput');
-            const evaluateBtn = document.getElementById('evaluateBtn');
-            const toggleBtn = document.getElementById('toggleVisibility');
-            const scoreBar = document.getElementById('scoreBar');
-            const scoreValue = document.getElementById('scoreValue');
-            const breachResult = document.getElementById('breachResult');
-            const contextualIssues = document.getElementById('contextualIssues');
-            const crackTime = document.getElementById('crackTime');
-            const recommendationsList = document.getElementById('recommendationsList');
-            const passwordForm = document.getElementById('passwordForm');
+    document.addEventListener('DOMContentLoaded', () => {
+        const passwordInput = document.getElementById('passwordInput');
+        const evaluateBtn = document.getElementById('evaluateBtn');
+        const toggleBtn = document.getElementById('toggleVisibility');
+        const scoreBar = document.getElementById('scoreBar');
+        const scoreValue = document.getElementById('scoreValue');
+        const breachResult = document.getElementById('breachResult');
+        const contextualIssues = document.getElementById('contextualIssues');
+        const crackTime = document.getElementById('crackTime');
+        const recommendationsList = document.getElementById('recommendationsList');
+        const passwordForm = document.getElementById('passwordForm');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const step4 = document.getElementById('step4');
 
-            let isVisible = false;
+        let isVisible = false;
+        let loadingInterval;
 
-            toggleBtn.addEventListener('click', () => {
-                isVisible = !isVisible;
-                passwordInput.type = isVisible ? 'text' : 'password';
-                toggleBtn.textContent = isVisible ? '👁️‍🗨️' : '👁️';
-                toggleBtn.setAttribute('aria-label', isVisible ? 'Hide password' : 'Show password');
+        toggleBtn.addEventListener('click', () => {
+            isVisible = !isVisible;
+            passwordInput.type = isVisible ? 'text' : 'password';
+            toggleBtn.innerHTML = isVisible ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+            toggleBtn.setAttribute('aria-label', isVisible ? 'Hide password' : 'Show password');
+        });
+
+        passwordForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            evaluatePassword();
+        });
+
+        function showLoadingScreen() {
+            step1.classList.add('active');
+            step2.classList.remove('active');
+            step3.classList.remove('active');
+            step4.classList.remove('active');
+            loadingOverlay.classList.add('active');
+
+            let step = 1;
+            loadingInterval = setInterval(() => {
+                step1.classList.toggle('active', step >= 1);
+                step2.classList.toggle('active', step >= 2);
+                step3.classList.toggle('active', step >= 3);
+                step4.classList.toggle('active', step >= 4);
+                step = (step % 4) + 1;
+            }, 800);
+        }
+
+        function hideLoadingScreen() {
+            clearInterval(loadingInterval);
+            loadingOverlay.classList.remove('active');
+        }
+
+        function evaluatePassword() {
+            const password = passwordInput.value.trim();
+            if (!password) return;
+
+            showLoadingScreen();
+            evaluateBtn.disabled = true;
+            evaluateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+            // Reset UI
+            scoreBar.style.width = '0%';
+            scoreValue.textContent = '-';
+            contextualIssues.innerHTML = '';
+            crackTime.textContent = '-';
+            recommendationsList.innerHTML = '<li>Analyzing password...</li>';
+            breachResult.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking breach databases...';
+
+            const startTime = Date.now();
+
+            fetch('/check', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `password=${encodeURIComponent(password)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                const elapsed = Date.now() - startTime;
+                const delay = Math.max(0, 5000 - elapsed); // delay to complete 5s total
+
+                setTimeout(() => {
+                    updateUI(data);
+                    hideLoadingScreen();
+                    evaluateBtn.disabled = false;
+                    evaluateBtn.innerHTML = '<i class="fas fa-search"></i> Evaluate Security';
+                }, delay);
+            })
+            .catch(error => {
+                hideLoadingScreen();
+                evaluateBtn.disabled = false;
+                evaluateBtn.innerHTML = '<i class="fas fa-search"></i> Evaluate Security';
+                breachResult.innerHTML = `<span class="warning">⚠️ Error: ${error.message || 'Evaluation failed'}</span>`;
             });
+        }
 
-            passwordForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                evaluatePassword();
-            });
+        function updateUI(data) {
+            const score = data.final_score;
+            const width = score * 25;
+            scoreBar.style.width = `${width}%`;
+            scoreBar.className = `score-bar score-${score}`;
+            scoreValue.textContent = `${score}/4`;
 
-            function evaluatePassword() {
-                const password = passwordInput.value.trim();
-                if (!password) return;
+            if (data.breach_count > 0) {
+                breachResult.innerHTML = `<span class="warning"><i class="fas fa-exclamation-triangle"></i> BREACHED!</span> Found in ${data.breach_count} data breaches`;
+            } else if (data.breach_count === -1) {
+                breachResult.innerHTML = `<span class="warning"><i class="fas fa-exclamation-circle"></i> Breach check unavailable</span>`;
+            } else {
+                breachResult.innerHTML = '<span class="safe"><i class="fas fa-check-circle"></i> No breaches found</span>';
+            }
 
-                // Reset UI
-                scoreBar.style.width = '0%';
-                scoreValue.textContent = '-';
-                breachResult.textContent = 'Analyzing...';
-                contextualIssues.innerHTML = '';
-                crackTime.textContent = '-';
-                recommendationsList.innerHTML = '<li>Analyzing password...</li>';
+            contextualIssues.innerHTML = '';
+            if (data.contextual_issues.length > 0) {
+                data.contextual_issues.forEach(issue => {
+                    const li = document.createElement('li');
+                    li.className = 'warning-item';
+                    li.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${issue}`;
+                    contextualIssues.appendChild(li);
+                });
+            } else {
+                contextualIssues.innerHTML = '<li class="safe-item"><i class="fas fa-check-circle"></i> No contextual weaknesses detected</li>';
+            }
 
-                fetch('/check', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `password=${encodeURIComponent(password)}`
-                })
-                .then(res => res.json())
-                .then(data => updateUI(data))
-                .catch(err => {
-                    console.error('Error:', err);
-                    breachResult.textContent = `Evaluation failed: ${err.message || err}`;
+            crackTime.textContent = data.crack_time || 'Unknown';
+
+            recommendationsList.innerHTML = '';
+            if (data.recommendations.length > 0) {
+                data.recommendations.forEach(rec => {
+                    const li = document.createElement('li');
+                    li.textContent = rec;
+                    recommendationsList.appendChild(li);
                 });
             }
 
-            function updateUI(data) {
-                const score = data.final_score;
-                const width = score * 25;
-                scoreBar.style.width = `${width}%`;
-                scoreBar.className = `score-bar score-${score}`;
-                scoreValue.textContent = `${score}/4`;
+            updateComparisonChart(data.zxcvbn_score, score);
+        }
 
-                if (data.breach_count > 0) {
-                    breachResult.innerHTML = `<span class="warning">⚠️ BREACHED!</span> Found in ${data.breach_count} data breaches`;
-                } else if (data.breach_count === -1) {
-                    breachResult.textContent = "Breach check unavailable (API error)";
-                } else {
-                    breachResult.innerHTML = '<span class="safe">✓ No breaches found</span>';
-                }
+        function updateComparisonChart(zxcvbnScore, ourScore) {
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
 
-                contextualIssues.innerHTML = '';
-                if (data.contextual_issues.length > 0) {
-                    data.contextual_issues.forEach(issue => {
-                        const li = document.createElement('li');
-                        li.textContent = issue;
-                        li.className = 'warning-item';
-                        contextualIssues.appendChild(li);
-                    });
-                } else {
-                    contextualIssues.innerHTML = '<li class="safe-item">No contextual weaknesses detected</li>';
-                }
-
-                crackTime.textContent = data.crack_time || 'Unknown';
-
-                recommendationsList.innerHTML = '';
-                if (data.recommendations.length > 0) {
-                    data.recommendations.forEach(rec => {
-                        const li = document.createElement('li');
-                        li.textContent = rec;
-                        recommendationsList.appendChild(li);
-                    });
-                }
-
-                updateComparisonChart(data.zxcvbn_score, score);
+            if (window.comparisonChart instanceof Chart) {
+                window.comparisonChart.destroy();
             }
 
-            function updateComparisonChart(zxcvbnScore, ourScore) {
-                const ctx = document.getElementById('comparisonChart').getContext('2d');
-
-                if (window.comparisonChart instanceof Chart) {
-                    window.comparisonChart.destroy();
-                }
-
-                window.comparisonChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['Standard Checker', 'Our Context-Aware Tool'],
-                        datasets: [{
-                            label: 'Password Score (0-4)',
-                            data: [zxcvbnScore, ourScore],
-                            backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(75, 192, 192, 0.7)'],
-                            borderColor: ['rgba(54, 162, 235, 1)', 'rgba(75, 192, 192, 1)'],
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 4,
-                                ticks: {
-                                    stepSize: 1
-                                }
+            window.comparisonChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Standard Checker', 'Our Context-Aware Tool'],
+                    datasets: [{
+                        label: 'Password Score (0-4)',
+                        data: [zxcvbnScore, ourScore],
+                        backgroundColor: ['rgba(108, 117, 125, 0.7)', 'rgba(67, 97, 238, 0.7)'],
+                        borderColor: ['rgba(108, 117, 125, 1)', 'rgba(67, 97, 238, 1)'],
+                        borderWidth: 1,
+                        borderRadius: 8,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 4,
+                            ticks: {
+                                stepSize: 1,
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
                             }
                         },
-                        responsive: true,
-                        plugins: {
-                            legend: {
+                        x: {
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            },
+                            grid: {
                                 display: false
                             }
                         }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 30, 40, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8
+                        }
                     }
-                });
-            }
-        });
-    </script>
+                }
+            });
+        }
+    });
+</script>
+
 </body>
 </html>
