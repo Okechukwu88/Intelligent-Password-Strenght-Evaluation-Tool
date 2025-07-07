@@ -499,7 +499,7 @@
             toggleBtn.addEventListener('click', () => {
                 isVisible = !isVisible;
                 passwordInput.type = isVisible ? 'text' : 'password';
-                toggleBtn.innerHTML = isVisible ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+                toggleBtn.textContent = isVisible ? '👁️‍🗨️' : '👁️';
                 toggleBtn.setAttribute('aria-label', isVisible ? 'Hide password' : 'Show password');
             });
 
@@ -508,68 +508,58 @@
                 evaluatePassword();
             });
 
-            // Simulate password evaluation for demonstration
             function evaluatePassword() {
                 const password = passwordInput.value.trim();
                 if (!password) return;
 
                 // Reset UI
                 scoreBar.style.width = '0%';
-                scoreBar.className = 'score-bar';
                 scoreValue.textContent = '-';
-                breachResult.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing breach databases...';
-                contextualIssues.innerHTML = '<li><i class="fas fa-spinner fa-spin"></i> Analyzing context...</li>';
+                breachResult.textContent = 'Analyzing...';
+                contextualIssues.innerHTML = '';
                 crackTime.textContent = '-';
-                recommendationsList.innerHTML = '<li><i class="fas fa-spinner fa-spin"></i> Generating recommendations...</li>';
+                recommendationsList.innerHTML = '<li>Analyzing password...</li>';
 
-                // Simulate API delay
-                setTimeout(() => {
-                    // Mock data for demonstration
-                    const mockData = {
-                        final_score: Math.min(4, Math.floor(password.length / 3)),
-                        breach_count: password.length < 6 ? 3 : 0,
-                        contextual_issues: password.length < 8 ? 
-                            ["Password is too short (minimum 8 characters)"] : 
-                            [],
-                        crack_time: password.length < 6 ? "Instantly" : 
-                                   password.length < 8 ? "Several hours" : 
-                                   password.length < 12 ? "Several months" : "Centuries",
-                        recommendations: password.length < 8 ? 
-                            ["Increase password length to at least 12 characters", 
-                             "Add special characters like !, @, or #",
-                             "Avoid common words or personal information"] : 
-                            ["Consider using a passphrase for easier memorization",
-                             "Enable two-factor authentication where possible"],
-                        zxcvbn_score: Math.min(4, Math.floor(password.length / 4))
-                    };
-                    
-                    updateUI(mockData);
-                }, 1500);
+                fetch('/check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `password=${encodeURIComponent(password)}`
+                })
+                .then(res => res.json())
+                .then(data => updateUI(data))
+                .catch(err => {
+                    console.error('Error:', err);
+                    breachResult.textContent = `Evaluation failed: ${err.message || err}`;
+                });
             }
 
             function updateUI(data) {
                 const score = data.final_score;
+                const width = score * 25;
+                scoreBar.style.width = `${width}%`;
                 scoreBar.className = `score-bar score-${score}`;
                 scoreValue.textContent = `${score}/4`;
 
                 if (data.breach_count > 0) {
-                    breachResult.innerHTML = `<span class="warning"><i class="fas fa-exclamation-triangle"></i> BREACHED!</span> Found in ${data.breach_count} data breaches`;
+                    breachResult.innerHTML = `<span class="warning">⚠️ BREACHED!</span> Found in ${data.breach_count} data breaches`;
                 } else if (data.breach_count === -1) {
-                    breachResult.innerHTML = `<span class="warning"><i class="fas fa-exclamation-circle"></i> Breach check unavailable</span>`;
+                    breachResult.textContent = "Breach check unavailable (API error)";
                 } else {
-                    breachResult.innerHTML = '<span class="safe"><i class="fas fa-check-circle"></i> No breaches found</span>';
+                    breachResult.innerHTML = '<span class="safe">✓ No breaches found</span>';
                 }
 
                 contextualIssues.innerHTML = '';
                 if (data.contextual_issues.length > 0) {
                     data.contextual_issues.forEach(issue => {
                         const li = document.createElement('li');
+                        li.textContent = issue;
                         li.className = 'warning-item';
-                        li.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${issue}`;
                         contextualIssues.appendChild(li);
                     });
                 } else {
-                    contextualIssues.innerHTML = '<li class="safe-item"><i class="fas fa-check-circle"></i> No contextual weaknesses detected</li>';
+                    contextualIssues.innerHTML = '<li class="safe-item">No contextual weaknesses detected</li>';
                 }
 
                 crackTime.textContent = data.crack_time || 'Unknown';
@@ -600,48 +590,25 @@
                         datasets: [{
                             label: 'Password Score (0-4)',
                             data: [zxcvbnScore, ourScore],
-                            backgroundColor: ['rgba(108, 117, 125, 0.7)', 'rgba(67, 97, 238, 0.7)'],
-                            borderColor: ['rgba(108, 117, 125, 1)', 'rgba(67, 97, 238, 1)'],
-                            borderWidth: 1,
-                            borderRadius: 8,
-                            borderSkipped: false
+                            backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(75, 192, 192, 0.7)'],
+                            borderColor: ['rgba(54, 162, 235, 1)', 'rgba(75, 192, 192, 1)'],
+                            borderWidth: 1
                         }]
                     },
                     options: {
-                        responsive: true,
                         scales: {
                             y: {
                                 beginAtZero: true,
                                 max: 4,
                                 ticks: {
-                                    stepSize: 1,
-                                    color: 'rgba(255, 255, 255, 0.7)'
-                                },
-                                grid: {
-                                    color: 'rgba(255, 255, 255, 0.1)'
-                                }
-                            },
-                            x: {
-                                ticks: {
-                                    color: 'rgba(255, 255, 255, 0.7)'
-                                },
-                                grid: {
-                                    display: false
+                                    stepSize: 1
                                 }
                             }
                         },
+                        responsive: true,
                         plugins: {
                             legend: {
                                 display: false
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(30, 30, 40, 0.9)',
-                                titleColor: '#fff',
-                                bodyColor: '#fff',
-                                borderColor: 'rgba(255, 255, 255, 0.1)',
-                                borderWidth: 1,
-                                padding: 12,
-                                cornerRadius: 8
                             }
                         }
                     }
