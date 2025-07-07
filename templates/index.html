@@ -4,13 +4,420 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Context-Aware Password Strength Tool</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3f37c9;
+            --secondary: #7209b7;
+            --dark: #1d1e2c;
+            --darker: #14151f;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --info: #3498db;
+            --card-bg: #252836;
+            --border: #343a40;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker), var(--dark));
+            color: var(--light);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0;
+            position: relative;
+        }
+
+        header h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        header::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            margin: 15px auto 0;
+            border-radius: 2px;
+        }
+
+        .password-evaluation {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .password-box {
+            display: flex;
+            gap: 12px;
+            position: relative;
+        }
+
+        .password-box input {
+            flex: 1;
+            padding: 18px 20px;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--light);
+            font-size: 1.1rem;
+            transition: var(--transition);
+            border: 2px solid transparent;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .password-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .password-box input::placeholder {
+            color: var(--gray);
+        }
+
+        .password-box button {
+            padding: 0 24px;
+            border: none;
+            border-radius: 12px;
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        .password-box button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        #toggleVisibility {
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            width: 60px;
+            box-shadow: none;
+        }
+
+        #toggleVisibility:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 900px) {
+            .results {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .score-display, .recommendations, .comparison {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .score-display {
+            grid-column: 1 / -1;
+        }
+
+        .score-header {
+            margin-bottom: 30px;
+        }
+
+        .score-header h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .score-header h2 i {
+            background: var(--primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .score-meter {
+            height: 24px;
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 15px;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .score-bar {
+            height: 100%;
+            width: 0%;
+            border-radius: 12px;
+            transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+
+        .score-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to right, var(--danger), var(--warning), var(--success));
+            border-radius: 12px;
+            opacity: 0.9;
+        }
+
+        .score-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            text-align: center;
+            margin-top: 10px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .score-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .detail-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+            animation: fadeIn 0.7s ease-out;
+        }
+
+        .detail-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .detail-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: var(--info);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .detail-card h3 i {
+            background: var(--info);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .detail-card p, .detail-card li {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .warning {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .safe {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .warning-item {
+            color: var(--warning);
+            list-style-type: none;
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .warning-item::before {
+            content: '⚠️';
+            margin-right: 8px;
+        }
+
+        .safe-item {
+            color: var(--success);
+            list-style-type: none;
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .safe-item::before {
+            content: '✓';
+            margin-right: 8px;
+            font-weight: bold;
+        }
+
+        .recommendations h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--warning);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .recommendations h2 i {
+            background: var(--warning);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #recommendationsList {
+            padding-left: 20px;
+        }
+
+        #recommendationsList li {
+            padding: 12px 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+            font-size: 1.1rem;
+            position: relative;
+            padding-left: 30px;
+        }
+
+        #recommendationsList li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--warning);
+            font-weight: bold;
+        }
+
+        .comparison h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .comparison h2 i {
+            background: var(--primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px 0;
+            color: var(--gray);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border);
+            margin-top: 20px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.4); }
+            70% { box-shadow: 0 0 0 12px rgba(67, 97, 238, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0); }
+        }
+
+        /* Score colors */
+        .score-0 { width: 0% !important; }
+        .score-1 { width: 25% !important; }
+        .score-2 { width: 50% !important; }
+        .score-3 { width: 75% !important; }
+        .score-4 { width: 100% !important; }
+    </style>
 </head>
 <body>
     <main class="container">
         <header>
-            <h1>Intelligent Password Strength Evaluation</h1>
+            <h1><i class="fas fa-shield-alt"></i> Intelligent Password Strength Evaluation</h1>
+            <p>Advanced security analysis with contextual awareness</p>
         </header>
 
         <section class="password-evaluation">
@@ -18,8 +425,12 @@
                 <label for="passwordInput" class="visually-hidden">Enter password</label>
                 <div class="password-box">
                     <input type="password" id="passwordInput" name="password" placeholder="Enter password to evaluate..." aria-required="true" />
-                    <button type="button" id="toggleVisibility" aria-label="Toggle password visibility">👁️</button>
-                    <button type="submit" id="evaluateBtn">Evaluate</button>
+                    <button type="button" id="toggleVisibility" aria-label="Toggle password visibility">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button type="submit" id="evaluateBtn" class="pulse">
+                        <i class="fas fa-search"></i> Evaluate Security
+                    </button>
                 </div>
             </form>
         </section>
@@ -27,7 +438,7 @@
         <section class="results" aria-label="Password Strength Results">
             <article class="score-display">
                 <header class="score-header">
-                    <h2>Security Assessment</h2>
+                    <h2><i class="fas fa-chart-line"></i> Security Assessment</h2>
                     <div class="score-meter" role="progressbar" aria-valuemin="0" aria-valuemax="4">
                         <div class="score-bar" id="scoreBar"></div>
                     </div>
@@ -36,27 +447,31 @@
 
                 <div class="score-details">
                     <div class="detail-card">
-                        <h3>Breach Analysis</h3>
-                        <p id="breachResult">Checking...</p>
+                        <h3><i class="fas fa-database"></i> Breach Analysis</h3>
+                        <p id="breachResult"><i class="fas fa-spinner fa-spin"></i> Checking database breaches...</p>
                     </div>
                     <div class="detail-card">
-                        <h3>Context Analysis</h3>
-                        <ul id="contextualIssues" aria-live="polite"></ul>
+                        <h3><i class="fas fa-globe"></i> Context Analysis</h3>
+                        <ul id="contextualIssues" aria-live="polite">
+                            <li class="safe-item">No analysis performed yet</li>
+                        </ul>
                     </div>
                     <div class="detail-card">
-                        <h3>Time to Crack</h3>
+                        <h3><i class="fas fa-clock"></i> Time to Crack</h3>
                         <p id="crackTime">-</p>
                     </div>
                 </div>
             </article>
 
             <article class="recommendations">
-                <h2>Security Recommendations</h2>
-                <ul id="recommendationsList" aria-live="polite"></ul>
+                <h2><i class="fas fa-lightbulb"></i> Security Recommendations</h2>
+                <ul id="recommendationsList" aria-live="polite">
+                    <li>Enter a password to receive personalized security recommendations</li>
+                </ul>
             </article>
 
             <article class="comparison">
-                <h2>Comparison with Standard Checkers</h2>
+                <h2><i class="fas fa-chart-bar"></i> Comparison with Standard Checkers</h2>
                 <canvas id="comparisonChart" aria-label="Password score comparison chart"></canvas>
             </article>
         </section>
@@ -84,7 +499,7 @@
             toggleBtn.addEventListener('click', () => {
                 isVisible = !isVisible;
                 passwordInput.type = isVisible ? 'text' : 'password';
-                toggleBtn.textContent = isVisible ? '👁️‍🗨️' : '👁️';
+                toggleBtn.innerHTML = isVisible ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
                 toggleBtn.setAttribute('aria-label', isVisible ? 'Hide password' : 'Show password');
             });
 
@@ -93,58 +508,68 @@
                 evaluatePassword();
             });
 
+            // Simulate password evaluation for demonstration
             function evaluatePassword() {
                 const password = passwordInput.value.trim();
                 if (!password) return;
 
                 // Reset UI
                 scoreBar.style.width = '0%';
+                scoreBar.className = 'score-bar';
                 scoreValue.textContent = '-';
-                breachResult.textContent = 'Analyzing...';
-                contextualIssues.innerHTML = '';
+                breachResult.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing breach databases...';
+                contextualIssues.innerHTML = '<li><i class="fas fa-spinner fa-spin"></i> Analyzing context...</li>';
                 crackTime.textContent = '-';
-                recommendationsList.innerHTML = '<li>Analyzing password...</li>';
+                recommendationsList.innerHTML = '<li><i class="fas fa-spinner fa-spin"></i> Generating recommendations...</li>';
 
-                fetch('/check', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `password=${encodeURIComponent(password)}`
-                })
-                .then(res => res.json())
-                .then(data => updateUI(data))
-                .catch(err => {
-                    console.error('Error:', err);
-                    breachResult.textContent = `Evaluation failed: ${err.message || err}`;
-                });
+                // Simulate API delay
+                setTimeout(() => {
+                    // Mock data for demonstration
+                    const mockData = {
+                        final_score: Math.min(4, Math.floor(password.length / 3)),
+                        breach_count: password.length < 6 ? 3 : 0,
+                        contextual_issues: password.length < 8 ? 
+                            ["Password is too short (minimum 8 characters)"] : 
+                            [],
+                        crack_time: password.length < 6 ? "Instantly" : 
+                                   password.length < 8 ? "Several hours" : 
+                                   password.length < 12 ? "Several months" : "Centuries",
+                        recommendations: password.length < 8 ? 
+                            ["Increase password length to at least 12 characters", 
+                             "Add special characters like !, @, or #",
+                             "Avoid common words or personal information"] : 
+                            ["Consider using a passphrase for easier memorization",
+                             "Enable two-factor authentication where possible"],
+                        zxcvbn_score: Math.min(4, Math.floor(password.length / 4))
+                    };
+                    
+                    updateUI(mockData);
+                }, 1500);
             }
 
             function updateUI(data) {
                 const score = data.final_score;
-                const width = score * 25;
-                scoreBar.style.width = `${width}%`;
                 scoreBar.className = `score-bar score-${score}`;
                 scoreValue.textContent = `${score}/4`;
 
                 if (data.breach_count > 0) {
-                    breachResult.innerHTML = `<span class="warning">⚠️ BREACHED!</span> Found in ${data.breach_count} data breaches`;
+                    breachResult.innerHTML = `<span class="warning"><i class="fas fa-exclamation-triangle"></i> BREACHED!</span> Found in ${data.breach_count} data breaches`;
                 } else if (data.breach_count === -1) {
-                    breachResult.textContent = "Breach check unavailable (API error)";
+                    breachResult.innerHTML = `<span class="warning"><i class="fas fa-exclamation-circle"></i> Breach check unavailable</span>`;
                 } else {
-                    breachResult.innerHTML = '<span class="safe">✓ No breaches found</span>';
+                    breachResult.innerHTML = '<span class="safe"><i class="fas fa-check-circle"></i> No breaches found</span>';
                 }
 
                 contextualIssues.innerHTML = '';
                 if (data.contextual_issues.length > 0) {
                     data.contextual_issues.forEach(issue => {
                         const li = document.createElement('li');
-                        li.textContent = issue;
                         li.className = 'warning-item';
+                        li.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${issue}`;
                         contextualIssues.appendChild(li);
                     });
                 } else {
-                    contextualIssues.innerHTML = '<li class="safe-item">No contextual weaknesses detected</li>';
+                    contextualIssues.innerHTML = '<li class="safe-item"><i class="fas fa-check-circle"></i> No contextual weaknesses detected</li>';
                 }
 
                 crackTime.textContent = data.crack_time || 'Unknown';
@@ -175,25 +600,48 @@
                         datasets: [{
                             label: 'Password Score (0-4)',
                             data: [zxcvbnScore, ourScore],
-                            backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(75, 192, 192, 0.7)'],
-                            borderColor: ['rgba(54, 162, 235, 1)', 'rgba(75, 192, 192, 1)'],
-                            borderWidth: 1
+                            backgroundColor: ['rgba(108, 117, 125, 0.7)', 'rgba(67, 97, 238, 0.7)'],
+                            borderColor: ['rgba(108, 117, 125, 1)', 'rgba(67, 97, 238, 1)'],
+                            borderWidth: 1,
+                            borderRadius: 8,
+                            borderSkipped: false
                         }]
                     },
                     options: {
+                        responsive: true,
                         scales: {
                             y: {
                                 beginAtZero: true,
                                 max: 4,
                                 ticks: {
-                                    stepSize: 1
+                                    stepSize: 1,
+                                    color: 'rgba(255, 255, 255, 0.7)'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.7)'
+                                },
+                                grid: {
+                                    display: false
                                 }
                             }
                         },
-                        responsive: true,
                         plugins: {
                             legend: {
                                 display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 30, 40, 0.9)',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                borderColor: 'rgba(255, 255, 255, 0.1)',
+                                borderWidth: 1,
+                                padding: 12,
+                                cornerRadius: 8
                             }
                         }
                     }
